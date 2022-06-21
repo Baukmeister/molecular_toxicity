@@ -5456,7 +5456,7 @@ NR-AR,NR-AR-LBD,NR-AhR,NR-Aromatase,NR-ER,NR-ER-LBD,NR-PPAR-gamma,SR-ARE,SR-ATAD
 0,0,0,0,0,0,0,,0,,0,0,TOX28503,CCC(C)(C)OC(=O)N[C@@H](Cc1c[nH]c2ccccc12)C(=O)N[C@@H](CCSC)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](Cc1ccccc1)C(N)=O
 0,0,0,0,0,0,0,0,0,0,0,0,TOX25158,Nc1c2c(nc3ccccc13)CCCC2O
 0,0,0,0,0,0,0,0,0,0,0,0,TOX25157,N=C(N)NC(=O)Cc1c(Cl)cccc1Cl
-0,0,,,,0,0,,0,,1,0,TOX25150,O=c1c2ccccc2[se]n1-c1ccccc1
+0,0,,,,0,0,,0,,1,0,TOX25150,O=c1c2ccccc2[Se]n1-c1ccccc1
 ,,,,,,,0,,0,,,TOX25151,O=C(O)CN(CCOCCOCCN(CC(=O)O)CC(=O)O)CC(=O)O
 0,0,0,0,,0,0,,,,,,TOX25152,O=C1NCN(c2ccccc2)C12CCN(CCCC(c1ccc(F)cc1)c1ccc(F)cc1)CC2
 0,0,,,0,0,0,0,0,0,0,0,TOX25153,Cc1nc2c([nH]1)c(=O)n(C)c(=O)n2Cc1ccco1
