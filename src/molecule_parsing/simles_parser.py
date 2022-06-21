@@ -4,6 +4,8 @@
 # https://neo4j.com/developer/python/
 import os
 from typing import List
+
+from neo4j import GraphDatabase
 from pysmiles import read_smiles
 import pandas as pd
 import networkx as nx
@@ -11,7 +13,8 @@ import networkx as nx
 class SmilesParser:
 
     def __init__(self):
-        self.molecules: List[nx.Graph] = None
+        self.molecules: List[nx.Graph] = []
+        self.database_driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "postgres"))
 
     def parse_smiles_molecule(self, smiles: str, explicit_hydrogen=True):
 
@@ -22,7 +25,10 @@ class SmilesParser:
         return [self.parse_smiles_molecule(smiles) for smiles in smiles_list]
 
     def store_smiles_list_in_neo4j(self, smiles_list: List[str], neo4j_con):
-        pass
+
+        with self.database_driver.session() as session:
+            #TODO: store molecules here
+            pass
 
     def load_tox21_smiles_list(self, file_path: str) -> None:
 
