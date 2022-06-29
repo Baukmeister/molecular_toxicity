@@ -10,19 +10,21 @@ from neo4j import GraphDatabase
 from pysmiles import read_smiles
 import pandas as pd
 import networkx as nx
+from tqdm import tqdm
 
 
-class SmilesParser:
+class MoleculeDataHandler:
 
-    def __init__(self):
+    def __init__(self, load_cache=True):
         self.molecules: List[nx.Graph] = []
         self.database_driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "postgres"))
         self.molecule_cache = {}
         self.cache_location = "./molecule_cache.pkl"
-        if os.path.isfile(self.cache_location):
-            with open(self.cache_location, 'rb') as f:
-                print("Using cached molecules...")
-                self.molecule_cache = pickle.load(f)
+        if load_cache:
+            if os.path.isfile(self.cache_location):
+                with open(self.cache_location, 'rb') as f:
+                    print("Using cached molecules...")
+                    self.molecule_cache = pickle.load(f)
 
     def parse_smiles_molecule(self, smiles: str, explicit_hydrogen=False):
 
@@ -89,10 +91,37 @@ class SmilesParser:
         smiles_codes = list(tox_21_data['smiles'])
         self.molecules = self.parse_smiles_list(smiles_codes)
 
+    def load_molecules_from_neo4j(self) -> List[nx.Graph]:
+
+        molecules = []
+
+        with self.database_driver.session() as session:
+            smiles_list = session.run("MATCH (a:Atom) RETURN DISTINCT a.molecule_smiles as smiles").to_df()["smiles"].tolist()
+
+            for smiles_string in tqdm(smiles_list):
+
+                results = session.run("Match (a:Atom)-[b]-(x:Atom) where a.molecule_smiles = $smiles return a,b", smiles=smiles_string)
+
+                G = nx.MultiDiGraph()
+
+                nodes = list(results.graph()._nodes.values())
+                for node in nodes:
+                    G.add_node(node.id, labels=node._labels, properties=node._properties)
+
+                rels = list(results.graph()._relationships.values())
+                for rel in rels:
+                    G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, type=rel.type, properties=rel._properties)
+
+                molecules.append(G)
+
+            self.molecules = molecules
+            print(f"Completed loading molecules from neo4j database!")
+
     def _execute_neo4j_transactions(self, transaction_execution_commands: List[str]):
         print(f"Executing {len(transaction_execution_commands)} neo4j commands ...")
         with self.database_driver.session() as session:
             for idx, transaction in enumerate(transaction_execution_commands):
+
 
                 if idx % 100 == 0:
                     print(
