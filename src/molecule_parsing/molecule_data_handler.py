@@ -11,6 +11,8 @@ from pysmiles import read_smiles
 import pandas as pd
 import networkx as nx
 from tqdm import tqdm
+from torch_geometric.utils import convert
+from torch_geometric.data import dataset
 
 
 class MoleculeDataHandler:
@@ -19,12 +21,21 @@ class MoleculeDataHandler:
         self.molecules: List[nx.Graph] = []
         self.database_driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "postgres"))
         self.molecule_cache = {}
-        self.cache_location = "./molecule_cache.pkl"
+        self.neo4j_cache = {}
+        self.neo4j_cache_location = "./neo4j_graph_cache.pkl"
+        self.molecule_cache_location = "./molecule_cache.pkl"
+
         if load_cache:
-            if os.path.isfile(self.cache_location):
-                with open(self.cache_location, 'rb') as f:
+            if os.path.isfile(self.molecule_cache_location):
+                with open(self.molecule_cache_location, 'rb') as f:
                     print("Using cached molecules...")
                     self.molecule_cache = pickle.load(f)
+                    self.molecules = self.parse_smiles_list([smiles for smiles in self.molecule_cache.keys()])
+
+            if os.path.isfile(self.neo4j_cache_location):
+                with open(self.neo4j_cache_location, 'rb') as f:
+                    print("Using cached neo4j molecules...")
+                    self.neo4j_cache = pickle.load(f)
 
     def parse_smiles_molecule(self, smiles: str, explicit_hydrogen=False):
 
@@ -33,6 +44,11 @@ class MoleculeDataHandler:
         else:
             molecule = read_smiles(smiles, explicit_hydrogen)
             self.molecule_cache[smiles] = molecule
+
+        for idx, data in molecule.nodes(data=True):
+            for atomic_property in ["stereo", "isotope"]:
+                if atomic_property in data.keys():
+                    del molecule.nodes[idx][atomic_property]
 
         return (
             smiles,
@@ -49,7 +65,7 @@ class MoleculeDataHandler:
                 self.molecule_cache[smiles] = molecule
 
         if cache_result:
-            with open(self.cache_location, 'wb') as f:
+            with open(self.molecule_cache_location, 'wb') as f:
                 pickle.dump(self.molecule_cache, f)
 
         return molecule_list
@@ -91,42 +107,64 @@ class MoleculeDataHandler:
         smiles_codes = list(tox_21_data['smiles'])
         self.molecules = self.parse_smiles_list(smiles_codes)
 
-    def load_molecules_from_neo4j(self) -> List[nx.Graph]:
+    def load_molecules_from_neo4j(self, cache_results=True) -> List[nx.Graph]:
 
         molecules = []
 
         with self.database_driver.session() as session:
-            smiles_list = session.run("MATCH (a:Atom) RETURN DISTINCT a.molecule_smiles as smiles").to_df()["smiles"].tolist()
+            smiles_list = session.run("MATCH (a:Atom) RETURN DISTINCT a.molecule_smiles as smiles").to_df()[
+                "smiles"].tolist()
 
             for smiles_string in tqdm(smiles_list):
 
-                results = session.run("Match (a:Atom)-[b]-(x:Atom) where a.molecule_smiles = $smiles return a,b", smiles=smiles_string)
+                if smiles_string in self.neo4j_cache.keys():
+                    G = self.neo4j_cache[smiles_string]
+                else:
+                    results = session.run("Match (a:Atom)-[b]-(x:Atom) where a.molecule_smiles = $smiles return a,b",
+                                          smiles=smiles_string)
 
-                G = nx.MultiDiGraph()
+                    G = nx.MultiDiGraph()
 
-                nodes = list(results.graph()._nodes.values())
-                for node in nodes:
-                    G.add_node(node.id, labels=node._labels, properties=node._properties)
+                    nodes = list(results.graph()._nodes.values())
+                    for node in nodes:
+                        G.add_node(node.id, labels=node._labels, properties=node._properties)
 
-                rels = list(results.graph()._relationships.values())
-                for rel in rels:
-                    G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, type=rel.type, properties=rel._properties)
+                    rels = list(results.graph()._relationships.values())
+                    for rel in rels:
+                        G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, type=rel.type,
+                                   properties=rel._properties)
+
+                    self.neo4j_cache[smiles_string] = G
 
                 molecules.append(G)
 
-            self.molecules = molecules
+            self.molecules.append((smiles_string, molecules))
+
+            if cache_results:
+                with open(self.neo4j_cache_location, 'wb') as f:
+                    pickle.dump(self.neo4j_cache, f)
+
             print(f"Completed loading molecules from neo4j database!")
+
+    def convert_molecules_to_pyG(self):
+        py_torch_graphs = []
+
+        for smiles, molecule in tqdm(self.molecules):
+            if isinstance(molecule, nx.Graph):
+                pyG_graph = convert.from_networkx(molecule)
+                py_torch_graphs.append(pyG_graph)
+
+
+        return py_torch_graphs
 
     def _execute_neo4j_transactions(self, transaction_execution_commands: List[str]):
         print(f"Executing {len(transaction_execution_commands)} neo4j commands ...")
         with self.database_driver.session() as session:
             for idx, transaction in enumerate(transaction_execution_commands):
 
-
                 if idx % 100 == 0:
                     print(
-                        f"{idx}/{len(transaction_execution_commands)} ({round((idx / len(transaction_execution_commands)) * 100, 2) }%) of commands done ...")
-
+                        f"{idx}/{len(transaction_execution_commands)} ({round((idx / len(transaction_execution_commands)) * 100, 2)}%) of commands done ...")
                 session.run(transaction)
 
         print(f"Completed writing to neo4j database!")
