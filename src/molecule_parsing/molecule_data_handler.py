@@ -130,12 +130,12 @@ class MoleculeDataHandler:
 
                     nodes = list(results.graph()._nodes.values())
                     for node in nodes:
-                        G.add_node(node.id, **self._convert_node_properties_to_int(node._properties))
+                        G.add_node(node.id, **self._convert_node_properties_to_basic_type(node._properties))
 
                     rels = list(results.graph()._relationships.values())
                     for rel in rels:
                         G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, type=rel.type,
-                                   **rel._properties)
+                                   **self._convert_edge_properties_to_basic_type(rel._properties))
 
                     self.neo4j_cache[smiles_string] = G
 
@@ -149,7 +149,7 @@ class MoleculeDataHandler:
 
             print(f"Completed loading molecules from neo4j database!")
 
-    def _convert_node_properties_to_int(self, node_props):
+    def _convert_node_properties_to_basic_type(self, node_props):
 
 
         output_dict = {
@@ -161,15 +161,25 @@ class MoleculeDataHandler:
 
         return output_dict
 
+    def _convert_edge_properties_to_basic_type(self, edge_props):
+
+        output_dict = {
+            "order": float(edge_props["order"])
+        }
+
+        return output_dict
+
     def convert_molecules_to_pyG(self):
         py_torch_graphs = []
 
         for smiles, molecule in tqdm(self.molecules):
-            if isinstance(molecule, nx.Graph):
+            if isinstance(molecule, nx.Graph) and len(molecule.nodes) > 0:
+
                 pyG_graph = convert.from_networkx(molecule,
                                                   group_node_attrs=["atomic_element", "charge", "aromatic", "hcount"],
                                                   group_edge_attrs=["order"])
                 py_torch_graphs.append(pyG_graph)
+
 
         return py_torch_graphs
 
