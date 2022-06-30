@@ -81,18 +81,21 @@ class MoleculeDataHandler:
                                       f"{{" \
                                       f"atom_id: '{str(molecule_smiles) + '-' + str(idx)}'," \
                                       f"molecule_smiles: '{molecule_smiles}'," \
-                                      f"element: '{atom_data['element']}'" \
+                                      f"atomic_element: '{atom_data['element']}'," \
+                                      f"charge: '{atom_data['charge']}'," \
+                                      f"hcount: '{atom_data['hcount']}'," \
+                                      f"aromatic: '{atom_data['aromatic']}'" \
                                       f"}}" \
                                       f")"
                 transaction_execution_commands.append(atom_create_command)
 
-            for start, end in molecule.edges:
+            for start, end, edge_data in molecule.edges(data=True):
                 start_id = str(molecule_smiles) + '-' + str(start)
                 end_id = str(molecule_smiles) + '-' + str(end)
 
                 # the direction in this relationship is required because of neo4j restrictions, but is ignored later on
                 edge_create_command = f"match (a:Atom), (b:Atom) where a.atom_id = '{start_id}' and b.atom_id = '{end_id}'" \
-                                      f"create (a)-[r:Bond]->(b)"
+                                      f"create (a)-[r:Bond {{ order: '{edge_data['order']}' }}]->(b)"
 
                 transaction_execution_commands.append(edge_create_command)
 
@@ -123,22 +126,22 @@ class MoleculeDataHandler:
                     results = session.run("Match (a:Atom)-[b]-(x:Atom) where a.molecule_smiles = $smiles return a,b",
                                           smiles=smiles_string)
 
-                    G = nx.MultiDiGraph()
+                    G = nx.Graph()
 
                     nodes = list(results.graph()._nodes.values())
                     for node in nodes:
-                        G.add_node(node.id, labels=node._labels, properties=node._properties)
+                        G.add_node(node.id, **self._convert_node_properties_to_int(node._properties))
 
                     rels = list(results.graph()._relationships.values())
                     for rel in rels:
                         G.add_edge(rel.start_node.id, rel.end_node.id, key=rel.id, type=rel.type,
-                                   properties=rel._properties)
+                                   **rel._properties)
 
                     self.neo4j_cache[smiles_string] = G
 
-                molecules.append(G)
+                molecules.append((smiles_string, G))
 
-            self.molecules.append((smiles_string, molecules))
+            self.molecules = molecules
 
             if cache_results:
                 with open(self.neo4j_cache_location, 'wb') as f:
@@ -146,15 +149,27 @@ class MoleculeDataHandler:
 
             print(f"Completed loading molecules from neo4j database!")
 
+    def _convert_node_properties_to_int(self, node_props):
+
+
+        output_dict = {
+            "atomic_element": int("".join([str(ord(c)) for c in node_props["atomic_element"]])),
+            "charge": int(node_props["charge"]),
+            "aromatic": bool(node_props["aromatic"]),
+            "hcount": int(node_props["hcount"]),
+        }
+
+        return output_dict
+
     def convert_molecules_to_pyG(self):
         py_torch_graphs = []
 
         for smiles, molecule in tqdm(self.molecules):
             if isinstance(molecule, nx.Graph):
-
-                pyG_graph = convert.from_networkx(molecule)
+                pyG_graph = convert.from_networkx(molecule,
+                                                  group_node_attrs=["atomic_element", "charge", "aromatic", "hcount"],
+                                                  group_edge_attrs=["order"])
                 py_torch_graphs.append(pyG_graph)
-
 
         return py_torch_graphs
 
