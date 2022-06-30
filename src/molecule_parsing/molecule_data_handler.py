@@ -188,21 +188,31 @@ class MoleculeDataHandler:
 
         return output_dict
 
-    def convert_molecules_to_pyG(self):
+    def convert_molecules_to_pyG(self, single_molecule=None):
         py_torch_graphs = []
 
-        for smiles, molecule in tqdm(self.molecules):
-            if isinstance(molecule, nx.Graph) and len(molecule.nodes) > 0:
+        if single_molecule:
 
-                pyG_graph = convert.from_networkx(molecule,
-                                                  group_node_attrs=["atomic_element", "charge", "aromatic", "hcount"],
-                                                  group_edge_attrs=["order"])
+            for _, node in single_molecule.nodes(data=True):
+                node["atomic_element"] = int("".join([str(ord(c)) for c in node["element"]]))
 
-                pyG_graph.y = 1 if self.toxicity_dict[smiles] else 0
-                py_torch_graphs.append(pyG_graph)
+            pyG_graph = convert.from_networkx(single_molecule,
+                                              group_node_attrs=["atomic_element", "charge", "aromatic", "hcount"],
+                                              group_edge_attrs=["order"])
+            return pyG_graph
+        else:
+            for smiles, molecule in tqdm(self.molecules):
+                if isinstance(molecule, nx.Graph) and len(molecule.nodes) > 0:
+
+                    pyG_graph = convert.from_networkx(molecule,
+                                                      group_node_attrs=["atomic_element", "charge", "aromatic", "hcount"],
+                                                      group_edge_attrs=["order"])
+
+                    pyG_graph.y = 1 if self.toxicity_dict[smiles] else 0
+                    py_torch_graphs.append(pyG_graph)
 
 
-        return py_torch_graphs
+            return py_torch_graphs
 
     def _execute_neo4j_transactions(self, transaction_execution_commands: List[str]):
         print(f"Executing {len(transaction_execution_commands)} neo4j commands ...")

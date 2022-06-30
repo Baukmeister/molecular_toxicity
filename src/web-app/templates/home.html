@@ -6,7 +6,6 @@
 	</head>
 	<body>
 		<h1>Predict Tocixity</h1>
-
 			<form action="http://localhost:5000/predict-toxicity" method="POST">
 				<label form="description">SMILES:</label>
 				<input type="text" id="smiles" name="smiles">
@@ -16,9 +15,8 @@
 			<br>
 			<br>
 				<image src="{{ image_data }}"></image>
-
 		<br>
-			Prediction: {{ prediction_text }}
+			<p style="font-size:40px; color:{{pred_color}} "> Prediction: {{ prediction_text }} <p>
 
 	</body>
 </html>

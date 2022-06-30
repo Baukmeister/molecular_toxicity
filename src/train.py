@@ -3,7 +3,7 @@ import torch
 from src.model import GCN
 
 model = GCN()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.1, weight_decay=0)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.1, weight_decay=0.0001)
 criterion = torch.nn.CrossEntropyLoss()
 
 def train(train_loader):
@@ -18,7 +18,7 @@ def train(train_loader):
         optimizer.zero_grad()  # Clear gradients.
 
 
-def test(loader):
+def test(loader, best_test_acc):
     model.eval()
 
     correct = 0
@@ -26,4 +26,9 @@ def test(loader):
         out = model(data)
         pred = out.argmax(dim=1)  # Use the class with highest probability.
         correct += int((pred == data.y).sum())  # Check against ground-truth labels.
-    return correct / len(loader.dataset)  # Derive ratio of correct predictions.
+        print(pred)
+    test_acc = correct / len(loader.dataset)  # Derive ratio of correct predictions.
+
+    if best_test_acc is not None and test_acc > best_test_acc:
+        torch.save(model, "./trained_model/best_model.pt")
+    return test_acc
