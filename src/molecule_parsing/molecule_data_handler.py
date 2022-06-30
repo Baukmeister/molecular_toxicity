@@ -3,6 +3,7 @@
 import json
 import os
 import pickle
+import random
 import uuid
 from typing import List
 
@@ -179,7 +180,8 @@ class MoleculeDataHandler:
                                                   group_node_attrs=["atomic_element", "charge", "aromatic", "hcount"],
                                                   group_edge_attrs=["order"])
 
-                pyG_graph.y = 1
+                #TODO: add real data here
+                pyG_graph.y = random.randint(0,1)
                 py_torch_graphs.append(pyG_graph)
 
 
