@@ -266,3 +266,4 @@ pip-selfcheck.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm+all,venv
 /src/molecule_cache.pkl
+/src/neo4j_graph_cache.pkl

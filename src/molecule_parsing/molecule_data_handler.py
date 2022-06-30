@@ -151,6 +151,7 @@ class MoleculeDataHandler:
 
         for smiles, molecule in tqdm(self.molecules):
             if isinstance(molecule, nx.Graph):
+
                 pyG_graph = convert.from_networkx(molecule)
                 py_torch_graphs.append(pyG_graph)
 
