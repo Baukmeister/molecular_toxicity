@@ -5,8 +5,9 @@ Status: ❌/✅
 
 - Find suitable datasets ✅
 - Transform the molecules into knowledge graph representations ✅
+  - select suitable label for learning task and add it to representation ❌
 - Store the model using neo4j ✅
-- Load the model using neo4j ❌
+- Load the model using neo4j ✅
 - Create a suitable pyG graph from the molecules ❌
 - Implement a simple GNN ❌
 - Use the GNN to predict toxicity ❌
