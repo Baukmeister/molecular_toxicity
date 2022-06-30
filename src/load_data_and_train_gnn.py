@@ -16,8 +16,8 @@ tox_dataset = MolecularToxicityDataset(root="../data/torch_data_set", molecule_g
 train_dataset = tox_dataset.data[:200]
 test_dataset = tox_dataset.data[200:]
 
-train_loader = DataLoader(train_dataset, batch_size=2, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 for epoch in range(1, 171):
     train(train_loader)

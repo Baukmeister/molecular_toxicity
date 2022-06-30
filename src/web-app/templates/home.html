@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	  	<link rel="stylesheet" href="{{ url_for('static', filename='asset_code.css') }}">
+	</head>
+	<body>
+		<h1>Predict Tocixity</h1>
+
+			<form action="http://localhost:5000/predict" method="POST">
+				<label form="description">SMILES:</label>
+				<input type="text" id="description" name="description">
+				<button type="submit" class=cv_btn>Predict Toxicity</button>
+
+			</form>
+			<br>
+			<br>
+			Molecule: {{ molecule_img }}
+		<br>
+			Prediction: {{ prediction_text }}
+
+	</body>
+</html>

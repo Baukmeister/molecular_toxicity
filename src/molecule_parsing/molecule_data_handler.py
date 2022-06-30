@@ -20,11 +20,20 @@ class MoleculeDataHandler:
 
     def __init__(self, load_cache=True):
         self.molecules: List[nx.Graph] = []
+        self.toxicity_dict = {}
         self.database_driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "postgres"))
         self.molecule_cache = {}
         self.neo4j_cache = {}
         self.neo4j_cache_location = "./neo4j_graph_cache.pkl"
         self.molecule_cache_location = "./molecule_cache.pkl"
+        self.toxicity_dict_location = "./toxicity_dict.pkl"
+
+        if os.path.isfile(self.toxicity_dict_location):
+            with open(self.toxicity_dict_location, 'rb') as f:
+                print("Loading toxicity dict...")
+                self.neo4j_cache = pickle.load(f)
+        else:
+            print("Toxicity dict file is missing. Make sure to properly load the data first!")
 
         if load_cache:
             if os.path.isfile(self.molecule_cache_location):
@@ -108,7 +117,16 @@ class MoleculeDataHandler:
             raise ValueError(f"Path {file_path} is invalid!")
 
         tox_21_data = pd.read_csv(file_path)
+
+        toxicity_cols = [col_name for col_name in tox_21_data.columns if col_name not in ["mol_id", "smiles"] ]
+        toxicity_values = tox_21_data[toxicity_cols]
+        is_toxic = (toxicity_values.sum(axis=1) >= 1).tolist()
         smiles_codes = list(tox_21_data['smiles'])
+        self.toxicity_dict = dict(zip(smiles_codes, is_toxic))
+
+        with open(self.toxicity_dict_location, 'wb') as f:
+            pickle.dump(self.toxicity_dict, f)
+
         self.molecules = self.parse_smiles_list(smiles_codes)
 
     def load_molecules_from_neo4j(self, cache_results=True) -> List[nx.Graph]:
@@ -180,7 +198,6 @@ class MoleculeDataHandler:
                                                   group_node_attrs=["atomic_element", "charge", "aromatic", "hcount"],
                                                   group_edge_attrs=["order"])
 
-                #TODO: add real data here
                 pyG_graph.y = random.randint(0,1)
                 py_torch_graphs.append(pyG_graph)
 
