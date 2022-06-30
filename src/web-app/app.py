@@ -1,4 +1,11 @@
+import os.path
+from base64 import *
+import io
+
+from PIL import Image
 from flask import Flask, request, jsonify, render_template
+from rdkit import Chem
+from rdkit.Chem.Draw import MolToImage
 
 # create the flask app
 app = Flask(__name__)
@@ -14,19 +21,26 @@ def home():
 # running the model, and displaying the prediction
 @app.route('/predict', methods=['GET', 'POST'])
 def predict():
-    # get the description submitted on the web page
-    a_description = request.form.get('description')
-    return render_template('home.html', prediction_text=a_description)
-    # return 'Description entered: {}'.format(a_description)
+    smiles = request.form.get('smiles')
+    molecule_image = _draw_smiles(smiles)
+    dataurl = 'data:image/png;base64,' + molecule_image
+    return render_template('home.html', prediction_text="Toxic", image_data=dataurl)
 
 
-# @app.route('/prediction', methods=['GET', 'POST'])
-# def prediction():
-#    if request.method == 'POST':
-#        prediction_data = request.json
-#        print(prediction_data)
-#    return jsonify({'result': prediction_data})
+def _draw_smiles(smiles_string):
+    file_name = f"images/{smiles_string}.png"
 
-# boilerplate flask app code
+    if not os.path.exists(file_name):
+        molecule = Chem.MolFromSmiles(smiles_string)
+        img = MolToImage(molecule)
+        img.save(file_name)
+
+    img = Image.open(file_name)
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format='PNG')
+    my_encoded_img = encodebytes(img_byte_arr.getvalue()).decode('ascii')
+
+    return my_encoded_img
+
 if __name__ == "__main__":
     app.run(debug=True)
