@@ -2,20 +2,20 @@ import torch
 
 from src.model import GCN
 
-model = GCN(hidden_channels=64)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+model = GCN()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 criterion = torch.nn.CrossEntropyLoss()
-
 
 def train(train_loader):
     model.train()
 
     for data in train_loader:  # Iterate in batches over the training dataset.
-        out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
+
+        optimizer.zero_grad()  # Clear gradients.
+        out = model(data)  # Perform a single forward pass.
         loss = criterion(out, data.y)  # Compute the loss.
         loss.backward()  # Derive gradients.
         optimizer.step()  # Update parameters based on gradients.
-        optimizer.zero_grad()  # Clear gradients.
 
 
 def test(loader):

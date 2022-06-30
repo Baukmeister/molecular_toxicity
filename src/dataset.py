@@ -11,6 +11,7 @@ class MolecularToxicityDataset(InMemoryDataset):
 
     def __init__(self, root, molecule_graphs, test=False, transform=None, pre_transform=None):
         self.molecule_graphs = molecule_graphs
+        self.test = test
         super(MolecularToxicityDataset, self).__init__(root, transform, pre_transform)
         self.data = molecule_graphs
 

@@ -4,6 +4,7 @@ from torch_geometric.loader import DataLoader
 from src.train import *
 
 from torch_geometric.datasets import Planetoid
+planetoid = Planetoid(root='/tmp/Cora', name='Cora')
 
 
 parser = MoleculeDataHandler(load_cache=True)
