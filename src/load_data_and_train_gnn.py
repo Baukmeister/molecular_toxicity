@@ -9,15 +9,15 @@ planetoid = Planetoid(root='/tmp/Cora', name='Cora')
 
 parser = MoleculeDataHandler(load_cache=True)
 parser.load_molecules_from_neo4j()
-
 graphs = parser.convert_molecules_to_pyG()
+
 tox_dataset = MolecularToxicityDataset(root="../data/torch_data_set", molecule_graphs=graphs)
+split_point = 2000
+train_dataset = tox_dataset.data[:split_point]
+test_dataset = tox_dataset.data[split_point:]
 
-train_dataset = tox_dataset.data[:200]
-test_dataset = tox_dataset.data[200:]
-
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=200, shuffle=False)
 
 for epoch in range(1, 171):
     train(train_loader)

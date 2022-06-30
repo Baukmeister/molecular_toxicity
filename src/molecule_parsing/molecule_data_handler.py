@@ -31,7 +31,7 @@ class MoleculeDataHandler:
         if os.path.isfile(self.toxicity_dict_location):
             with open(self.toxicity_dict_location, 'rb') as f:
                 print("Loading toxicity dict...")
-                self.neo4j_cache = pickle.load(f)
+                self.toxicity_dict = pickle.load(f)
         else:
             print("Toxicity dict file is missing. Make sure to properly load the data first!")
 
@@ -183,7 +183,7 @@ class MoleculeDataHandler:
     def _convert_edge_properties_to_basic_type(self, edge_props):
 
         output_dict = {
-            "order": (edge_props["order"])
+            "order": float(edge_props["order"])
         }
 
         return output_dict
@@ -198,7 +198,7 @@ class MoleculeDataHandler:
                                                   group_node_attrs=["atomic_element", "charge", "aromatic", "hcount"],
                                                   group_edge_attrs=["order"])
 
-                pyG_graph.y = random.randint(0,1)
+                pyG_graph.y = 1 if self.toxicity_dict[smiles] else 0
                 py_torch_graphs.append(pyG_graph)
 
 
