@@ -30,7 +30,7 @@ The dataset is already included in the repository.
 ## Parsing the data
 
 To parse the data and place it in a neo4j database simply run
-
+Make sure to have an empty neo4j database running at `bolt://localhost:7687` with the password set to `postgres` to be compatible.
 ```bash
 cd src
 python python .\parse_and_store_datasets.py
