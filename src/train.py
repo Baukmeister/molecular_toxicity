@@ -1,13 +1,29 @@
-# %% imports
 import torch
-from torch_geometric.data import DataLoader
-from sklearn.metrics import confusion_matrix, f1_score, \
-    accuracy_score, precision_score, recall_score, roc_auc_score
-import numpy as np
-from tqdm import tqdm
-from dataset import MolecularToxicityDataset
-from model import GCN
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
 
+from src.model import GCN
+
+model = GCN(hidden_channels=64)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+criterion = torch.nn.CrossEntropyLoss()
+
+
+def train(train_loader):
+    model.train()
+
+    for data in train_loader:  # Iterate in batches over the training dataset.
+        out = model(data.x, data.edge_index, data.batch)  # Perform a single forward pass.
+        loss = criterion(out, data.y)  # Compute the loss.
+        loss.backward()  # Derive gradients.
+        optimizer.step()  # Update parameters based on gradients.
+        optimizer.zero_grad()  # Clear gradients.
+
+
+def test(loader):
+    model.eval()
+
+    correct = 0
+    for data in loader:  # Iterate in batches over the training/test dataset.
+        out = model(data.x, data.edge_index, data.batch)
+        pred = out.argmax(dim=1)  # Use the class with highest probability.
+        correct += int((pred == data.y).sum())  # Check against ground-truth labels.
+    return correct / len(loader.dataset)  # Derive ratio of correct predictions.

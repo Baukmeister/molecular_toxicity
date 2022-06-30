@@ -164,7 +164,7 @@ class MoleculeDataHandler:
     def _convert_edge_properties_to_basic_type(self, edge_props):
 
         output_dict = {
-            "order": float(edge_props["order"])
+            "order": (edge_props["order"])
         }
 
         return output_dict
@@ -178,6 +178,8 @@ class MoleculeDataHandler:
                 pyG_graph = convert.from_networkx(molecule,
                                                   group_node_attrs=["atomic_element", "charge", "aromatic", "hcount"],
                                                   group_edge_attrs=["order"])
+
+                pyG_graph.y = 1
                 py_torch_graphs.append(pyG_graph)
 
 
